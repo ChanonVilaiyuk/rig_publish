@@ -49,9 +49,11 @@ def main() :
     mc.file(src, o = True, f = True)
 
     for cmd in cmds : 
-        if cmd in setting.cmdList.keys() : 
-            print 'run %s' % setting.cmdList[cmd]
-            eval(setting.cmdList[cmd])
+        # if cmd in setting.cmdList.keys() : 
+            # print 'run %s' % setting.cmdList[cmd]
+            # eval(setting.cmdList[cmd])
+        cmd = 'rigCmd.%s()' % cmd
+        eval(cmd)
 
     print 'run complete'
 

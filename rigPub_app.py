@@ -31,6 +31,8 @@ reload(rigBatch)
 from tool.rig.cmd import rig_cmd as rigCmd 
 reload(rigCmd)
 
+from inspect import getmembers, isfunction
+
 moduleDir = sys.modules[__name__].__file__
 
 
@@ -64,6 +66,7 @@ class MyForm(QtGui.QMainWindow):
         file.close()
 
         self.ui.show()
+        self.ui.setWindowTitle('PT rig publish v.3.0')
 
         self.okIcon = '%s/%s' % (os.path.dirname(moduleDir), 'icons/ok_icon.png')
         self.xIcon = '%s/%s' % (os.path.dirname(moduleDir), 'icons/x_icon.png')
@@ -97,6 +100,8 @@ class MyForm(QtGui.QMainWindow):
         self.ui.outputFile_pushButton.clicked.connect(self.doOpenOutputFile)
         self.ui.task_comboBox.currentIndexChanged.connect(self.setOutputPath)
 
+        self.ui.cmd_listWidget.itemSelectionChanged.connect(self.showDocString)
+
 
     def refreshData(self) : 
         self.asset = entityInfo.info()
@@ -105,7 +110,12 @@ class MyForm(QtGui.QMainWindow):
 
     def initPath(self) : 
         path = self.asset.getPath(self.asset.department(), self.asset.task())
-        self.dataPath = '%s/data/%s.yml' % (path, self.asset.name())
+        dataPath = '%s/data/%s.yml' % (path, self.asset.name())
+
+        self.dataPath = '%s/%s' % (os.path.dirname(moduleDir), 'tmp/temp.yml')
+
+        if os.path.exists(dataPath) : 
+            self.dataPath = dataPath
 
 
     def setAssetUI(self) : 
@@ -120,10 +130,20 @@ class MyForm(QtGui.QMainWindow):
     def listCommands(self) : 
         self.ui.cmd_listWidget.clear()
         listWidget = 'cmd_listWidget'
+        cmds = self.getFunctions()
 
-        for each in sorted(setting.cmdList.keys()) : 
+        for each in cmds : 
+            funcName = each[0]
             color = [0, 0, 0]
-            self.addListWidgetItem(listWidget, each, self.cmdIcon, color)
+            self.addListWidgetItem(listWidget, funcName, self.cmdIcon, color)
+
+
+    def getFunctions(self) : 
+        allFuncs = getmembers(rigCmd)
+        cmds = [a for a in allFuncs if isfunction(a[1])]
+
+        return cmds
+
 
 
     def listExeList(self) : 
@@ -225,7 +245,9 @@ class MyForm(QtGui.QMainWindow):
                 self.setOutputLog('run %s' % cmd)
 
                 try : 
-                    eval(setting.cmdList[cmd])
+                    # eval(setting.cmdList[cmd])
+                    cmd = 'rigCmd.%s()' % cmd
+                    eval(cmd)
                     print '-> OK'
                     self.setOutputLog('-> OK')
 
@@ -370,6 +392,16 @@ class MyForm(QtGui.QMainWindow):
 
         else : 
             self.setOutputLog('Path not exists')
+
+
+    def showDocString(self) : 
+        doc = str()
+        sel = str(self.ui.cmd_listWidget.currentItem().text())
+        doc += '--  %s  --\n' % sel
+        cmd = 'rigCmd.%s.__doc__' % sel
+        doc += eval(cmd)
+
+        self.setInfoLog(doc)
 
 
     def setPublishTask(self) : 
